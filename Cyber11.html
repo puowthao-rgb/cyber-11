@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cyber-11 Control Panel</title>
+    
+    <!-- Google Fonts: Share Tech Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- MathJax -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --panel-bg: rgba(18, 18, 18, 0.85);
+            --border-color: rgba(0, 243, 255, 0.3);
+            --neon-cyan: #00f3ff;
+            --neon-red: #ff3333;
+            --neon-orange: #ff7b00;
+            --neon-green: #00ff66;
+            --text-main: #a9b4c2;
+            --text-light: #e0e6ed;
+            --gauge-bg: #2a2a2a;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: radial-gradient(circle at 50% 50%, #1a1a1a 0%, var(--bg-dark) 100%);
+            color: var(--text-main);
+            font-family: 'Share Tech Mono', monospace;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 51, 51, 0.3);
+            z-index: 9998;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        body.flash-screen::before {
+            animation: flash-screen-anim 0.6s ease-in-out 2;
+        }
+
+        @keyframes flash-screen-anim {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; background: rgba(255, 0, 0, 0.6); }
+        }
+
+        #explosion-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            background: #fff;
+            padding: 20px;
+        }
+
+        #explosion-overlay.active {
+            pointer-events: all;
+            animation: nuke-flash 4s forwards;
+        }
+
+        @keyframes nuke-flash {
+            0% { background: #ffffff; opacity: 1; }
+            10% { background: #ffffff; opacity: 1; }
+            30% { background: #ffaa00; opacity: 1; }
+            100% { background: radial-gradient(circle, #660000 0%, #000000 100%); opacity: 1; }
+        }
+
+        .explosion-text {
+            color: #fff;
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: bold;
+            text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000;
+            opacity: 0;
+            text-transform: uppercase;
+        }
+
+        #explosion-overlay.active .explosion-text {
+            animation: fade-in-text 1s 2.5s forwards;
+        }
+
+        @keyframes fade-in-text {
+            to { opacity: 1; }
+        }
+
+        .dashboard {
+            width: 100%;
+            max-width: 1000px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8), inset 0 0 20px rgba(0, 243, 255, 0.05);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 10;
+        }
+
+        .header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 243, 255, 0.03);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-title { color: var(--text-light); font-size: 1.2rem; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; font-weight: bold; }
+        
+        .timer-box {
+            background: rgba(255, 51, 51, 0.1);
+            border: 1px solid var(--neon-red);
+            padding: 0.3rem 1rem;
+            border-radius: 4px;
+            color: var(--neon-red);
+            font-size: 1.6rem;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 51, 51, 0.8);
+            animation: pulse-red 0.5s infinite alternate;
+        }
+
+        @keyframes pulse-red {
+            from { box-shadow: 0 0 5px rgba(255, 51, 51, 0.2); transform: scale(1); }
+            to { box-shadow: 0 0 20px rgba(255, 51, 51, 0.8); transform: scale(1.05); }
+        }
+
+        .shields { color: var(--neon-cyan); font-size: 1.4rem; display: flex; gap: 8px; }
+        .shields i.broken { color: var(--neon-red); opacity: 0.3; }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            padding: 2rem;
+        }
+
+        @media (min-width: 850px) {
+            .main-content { grid-template-columns: 1.4fr 1fr; }
+        }
+
+        .formula-box {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--neon-cyan);
+            padding: 1.2rem;
+            font-size: 1.4rem;
+            margin-bottom: 1.5rem;
+            color: var(--neon-cyan);
+            display: flex;
+            justify-content: center;
+        }
+
+        .task-list { margin-bottom: 2rem; font-size: 1.1rem; line-height: 1.6; }
+        .task-item { margin-bottom: 1rem; display: flex; gap: 12px; align-items: flex-start; }
+        .task-item i { margin-top: 6px; }
+        .task-item.warning i { color: var(--neon-red); }
+        .task-item.optimize i { color: var(--neon-green); }
+        
+        .highlight-red { color: var(--neon-red); font-weight: bold; }
+
+        .control-panel {
+            background: rgba(0, 243, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px dashed var(--border-color);
+        }
+
+        .status-row { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 1.2rem; 
+            padding-bottom: 1rem; 
+            border-bottom: 1px dashed rgba(0, 243, 255, 0.2); 
+        }
+
+        .control-label {
+            color: var(--neon-cyan);
+            font-size: 1rem;
+            text-transform: uppercase;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+        input[type="number"] {
+            flex: 1;
+            min-width: 120px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--neon-cyan);
+            color: var(--text-light);
+            padding: 0.8rem 1rem;
+            font-size: 2rem;
+            font-family: 'Share Tech Mono', monospace;
+            outline: none;
+            border-radius: 4px;
+            transition: box-shadow 0.3s;
+            text-align: center;
+        }
+        
+        input[type="number"]:focus:not(:disabled) { box-shadow: 0 0 15px rgba(0, 243, 255, 0.5); }
+        input[type="number"]:disabled { opacity: 0.5; cursor: not-allowed; border-color: var(--neon-red); }
+
+        button {
+            background: linear-gradient(135deg, rgba(0,243,255,0.1) 0%, rgba(0,102,255,0.3) 100%);
+            color: var(--text-light);
+            border: 1px solid var(--neon-cyan);
+            padding: 0.8rem 1.5rem;
+            font-size: 1.2rem;
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+
+        button:hover:not(:disabled) {
+            background: rgba(0, 243, 255, 0.2);
+            color: var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+        }
+
+        button:disabled { opacity: 0.5; cursor: not-allowed; border-color: var(--neon-red); color: #fff;}
+
+        #sys-msg { margin-top: 1rem; min-height: 24px; font-size: 1rem; font-weight: bold; text-transform: uppercase;}
+
+        .right-panel { display: flex; flex-direction: column; }
+        
+        .monitor-card {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .monitor-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-main);
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+        }
+
+        .gauge-container {
+            position: relative;
+            width: 100%;
+            max-width: 280px;
+            aspect-ratio: 2/1;
+        }
+
+        svg.gauge { width: 100%; height: 100%; overflow: visible; }
+        
+        .gauge-bg { fill: none; stroke: var(--gauge-bg); stroke-width: 18; stroke-linecap: round; }
+        
+        .gauge-fill {
+            fill: none;
+            stroke: var(--neon-cyan);
+            stroke-width: 18;
+            stroke-linecap: round;
+            stroke-dasharray: 251.2;
+            stroke-dashoffset: 251.2; /* Max value initially (empty) */
+            transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s ease;
+            filter: drop-shadow(0 0 8px var(--neon-cyan));
+        }
+
+        .gauge-tick { stroke: var(--neon-red); stroke-width: 4; stroke-linecap: round; }
+        .tick-label { fill: var(--neon-red); font-size: 14px; font-family: 'Share Tech Mono'; font-weight: bold; }
+
+        .gauge-text {
+            position: absolute;
+            bottom: -15px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .gauge-value {
+            font-size: 4rem;
+            font-weight: bold;
+            color: var(--text-light);
+            text-shadow: 0 0 15px rgba(255,255,255,0.3);
+            line-height: 1;
+            transition: color 0.3s;
+        }
+        
+        .gauge-unit { font-size: 1.1rem; color: var(--text-main); margin-top: 5px; text-transform: uppercase; letter-spacing: 1px;}
+
+        .shake { animation: shake 0.4s both; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+        
+        .severe-shake { animation: severe-shake 0.8s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes severe-shake {
+            0%, 100% { transform: translate3d(0, 0, 0); }
+            10%, 90% { transform: translate3d(-15px, -15px, 0); }
+            20%, 80% { transform: translate3d(20px, 15px, 0); }
+            30%, 50%, 70% { transform: translate3d(-30px, 20px, 0); }
+            40%, 60% { transform: translate3d(30px, -20px, 0); }
+        }
+        
+        .error-state { border-color: var(--neon-red) !important; box-shadow: 0 0 40px rgba(255, 51, 51, 0.3) !important; }
+        .success-state { border-color: var(--neon-green) !important; box-shadow: 0 0 40px rgba(0, 255, 102, 0.3) !important; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+    <div id="explosion-overlay">
+        <h1 class="explosion-text">HỆ THỐNG ĐÃ SẬP.<br>LÒ ĐỐT ĐÃ PHÁT NỔ!</h1>
+    </div>
+
+    <div class="dashboard" id="dashboard">
+        <header class="header">
+            <div class="header-title"><i class="fas fa-microchip"></i> CHIẾN DỊCH: CỨU NGUY LÒ ĐỐT CYBER-11</div>
+        </header>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="formula-box" id="math-formula">
+                    <!-- MathJax renders formula here -->
+                </div>
+
+                <div class="task-list" id="task-list">
+                    <!-- Tasks rendered from JS -->
+                </div>
+
+                <div class="control-panel">
+                    <div class="status-row">
+                        <div class="timer-box" id="timer-display">00:30</div>
+                        <div class="shields" id="shields"></div>
+                    </div>
+                    <div class="control-label"><i class="fas fa-terminal"></i> NHẬP CHU KỲ ĐÓNG VAN XẢ (T)</div>
+                    <div class="input-row">
+                        <input type="number" id="input-t" placeholder="0" autocomplete="off" min="0">
+                        <button id="btn-submit"><i class="fas fa-bolt"></i> THỰC THI LỆNH</button>
+                    </div>
+                    <div id="sys-msg">_SẴN SÀNG NHẬN DỮ LIỆU...</div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="monitor-card">
+                    <div class="monitor-header">
+                        <span>GIÁM SÁT RANH GIỚI</span>
+                        <i class="fas fa-radar" style="animation: spin 3s linear infinite; color: var(--neon-cyan);"></i>
+                    </div>
+                    
+                    <div class="gauge-container">
+                        <svg class="gauge" viewBox="0 10 200 100">
+                            <!-- Background Arc -->
+                            <path class="gauge-bg" d="M 20 100 A 80 80 0 0 1 180 100" />
+                            <!-- Value Arc -->
+                            <path class="gauge-fill" id="gauge-arc" d="M 20 100 A 80 80 0 0 1 180 100" />
+                            <!-- 100kg Limit Tick -->
+                            <line class="gauge-tick" x1="162" y1="50" x2="182" y2="35" />
+                            <text class="tick-label" x="172" y="28">100</text>
+                        </svg>
+
+                        <div class="gauge-text">
+                            <div class="gauge-value" id="gauge-val">--</div>
+                            <div class="gauge-unit">Ký-lô-gam</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // TẤT CẢ CẤU HÌNH Ở ĐÂY
+        const CONFIG = {
+            timerSeconds: 30,           
+            maxLives: 3,                
+            correctAnswer: 140,         
+            formulaRaw: '\\[ M(t) = 20 + 5 \\cdot (1,02)^t \\ (kg) \\]', 
+            gaugeMaxLimit: 125, // Giới hạn vạch max để vẽ đồ thị
+            
+            // Đã loại bỏ phần Ràng buộc khỏi giao diện như yêu cầu
+            tasks: [
+                {
+                    icon: 'fas fa-triangle-exclamation',
+                    type: 'warning',
+                    text: '<strong>Ngưỡng đoản mạch:</strong> Nếu chạm mốc <span class="highlight-red">100 kg</span>, hệ thống phát nổ.'
+                },
+                {
+                    icon: 'fas fa-arrow-trend-up',
+                    type: 'optimize',
+                    text: '<strong>Tối ưu hóa:</strong> Tìm thời gian bảo dưỡng t giờ (lấy số nguyên giờ) lớn nhất để tối ưu hóa hoạt động của nhà máy.'
+                }
+            ],
+            audio: {
+                bg: 'https://cdn.pixabay.com/download/audio/2022/10/25/audio_2ba765790c.mp3?filename=dark-sci-fi-drone-123797.mp3', 
+                error: 'https://cdn.pixabay.com/download/audio/2021/08/09/audio_65cb6f9df6.mp3?filename=siren-alert-96052.mp3',                
+                explode: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_c6ccf3232f.mp3?filename=explosion-6055.mp3',
+                success: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_bb630cc098.mp3?filename=success-1-6297.mp3' 
+            }
+        };
+
+        const DOM = {
+            dash: document.getElementById('dashboard'),
+            formula: document.getElementById('math-formula'),
+            taskList: document.getElementById('task-list'),
+            timer: document.getElementById('timer-display'),
+            shields: document.getElementById('shields'),
+            input: document.getElementById('input-t'),
+            btn: document.getElementById('btn-submit'),
+            msg: document.getElementById('sys-msg'),
+            gaugeArc: document.getElementById('gauge-arc'),
+            gaugeVal: document.getElementById('gauge-val'),
+            explosionOverlay: document.getElementById('explosion-overlay')
+        };
+
+        let timeLeft = CONFIG.timerSeconds;
+        let currentLives = CONFIG.maxLives;
+        let isGameOver = false;
+        let timerInterval = null;
+        let isAudioStarted = false;
+
+        // Khởi tạo Audio
+        const sfx = {
+            bg: new Audio(CONFIG.audio.bg),
+            err: new Audio(CONFIG.audio.error),
+            exp: new Audio(CONFIG.audio.explode),
+            win: new Audio(CONFIG.audio.success)
+        };
+        sfx.bg.loop = true; sfx.bg.volume = 0.2;
+        sfx.err.volume = 0.8;
+        sfx.exp.volume = 1.0;
+
+        function initApp() {
+            // Render MathJax
+            DOM.formula.innerHTML = CONFIG.formulaRaw;
+            if (window.MathJax) MathJax.typesetPromise();
+            
+            // Render Tasks
+            CONFIG.tasks.forEach(task => {
+                DOM.taskList.innerHTML += `
+                    <div class="task-item ${task.type}">
+                        <i class="${task.icon}"></i>
+                        <div>${task.text}</div>
+                    </div>
+                `;
+            });
+
+            updateShields();
+            // Khởi tạo giá trị ban đầu t=0
+            updateGauge(0);
+            startTimer();
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (isGameOver) {
+                    clearInterval(timerInterval);
+                    return;
+                }
+                
+                timeLeft--;
+                const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+                const s = (timeLeft % 60).toString().padStart(2, '0');
+                DOM.timer.innerText = `${m}:${s}`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    triggerExplosion();
+                }
+            }, 1000);
+        }
+
+        function updateShields() {
+            DOM.shields.innerHTML = '';
+            for (let i = 0; i < CONFIG.maxLives; i++) {
+                DOM.shields.innerHTML += `<i class="fas fa-shield-halved ${i >= currentLives ? 'broken' : ''}"></i>`;
+            }
+        }
+
+        function calculateValue(t) {
+            if (t === '' || isNaN(t) || t < 0) return { val: 25, isDanger: false };
+            const val = 20 + 5 * Math.pow(1.02, t);
+            return { val: val, isDanger: val >= 100 };
+        }
+
+        function updateGauge(tValue) {
+            const result = calculateValue(tValue);
+            
+            let valStr = result.val.toFixed(2);
+            if (result.val > 9999) valStr = "MAX";
+            
+            // Cập nhật số hiển thị
+            DOM.gaugeVal.innerText = valStr;
+            
+            // Đổi màu nếu quá tải
+            if (result.isDanger) {
+                DOM.gaugeArc.style.stroke = "var(--neon-red)";
+                DOM.gaugeVal.style.color = "var(--neon-red)";
+                DOM.gaugeArc.style.filter = "drop-shadow(0 0 12px var(--neon-red))";
+            } else {
+                DOM.gaugeArc.style.stroke = "var(--neon-cyan)";
+                DOM.gaugeVal.style.color = "var(--text-light)";
+                DOM.gaugeArc.style.filter = "drop-shadow(0 0 8px var(--neon-cyan))";
+            }
+
+            // Tính toán độ dài cung SVG
+            const MAX_DASH = 251.2;
+            let displayVal = result.val;
+            
+            if (displayVal > CONFIG.gaugeMaxLimit) displayVal = CONFIG.gaugeMaxLimit;
+            if (displayVal < 0) displayVal = 0;
+
+            const percentage = displayVal / CONFIG.gaugeMaxLimit;
+            const newOffset = MAX_DASH - (percentage * MAX_DASH);
+            
+            DOM.gaugeArc.style.strokeDashoffset = newOffset;
+        }
+
+        function showMsg(txt, color) {
+            DOM.msg.innerHTML = txt;
+            DOM.msg.style.color = color;
+        }
+
+        function shakeUI() {
+            DOM.dash.classList.remove('shake');
+            void DOM.dash.offsetWidth;
+            DOM.dash.classList.add('shake');
+        }
+
+        function flashRedScreen() {
+            document.body.classList.remove('flash-screen');
+            void document.body.offsetWidth;
+            document.body.classList.add('flash-screen');
+            setTimeout(() => { document.body.classList.remove('flash-screen'); }, 1300);
+        }
+
+        function triggerExplosion() {
+            if (isGameOver) return;
+            isGameOver = true;
+            
+            sfx.bg.pause(); 
+            sfx.err.pause();
+            sfx.exp.currentTime = 0;
+            sfx.exp.play().catch(()=>{});
+            
+            DOM.input.disabled = true;
+            DOM.btn.disabled = true;
+            DOM.input.value = 'ERROR';
+            
+            DOM.timer.style.animation = "none";
+            DOM.dash.classList.add('error-state');
+            
+            // Giả lập đồng hồ nhảy vọt lên max khi nổ
+            updateGauge(999);
+            showMsg("> HỆ THỐNG ĐÃ SẬP!", "var(--neon-red)");
+
+            DOM.dash.classList.add('severe-shake');
+            DOM.explosionOverlay.classList.add('active');
+        }
+
+        function triggerWin() {
+            isGameOver = true;
+            sfx.bg.pause(); sfx.win.play().catch(()=>{});
+            DOM.dash.classList.add('success-state');
+            
+            DOM.input.disabled = true;
+            DOM.btn.disabled = true;
+            
+            DOM.timer.style.animation = "none";
+            DOM.timer.style.color = "var(--neon-green)";
+            DOM.timer.style.borderColor = "var(--neon-green)";
+            showMsg("> [HOÀN TẤT] LỆNH ĐÃ THỰC THI. HỆ THỐNG AN TOÀN!", "var(--neon-green)");
+        }
+
+        DOM.btn.addEventListener('click', () => {
+            if (isGameOver) return;
+            if (!isAudioStarted) { sfx.bg.play().catch(()=>{}); isAudioStarted = true; }
+
+            const val = parseFloat(DOM.input.value);
+            
+            if (isNaN(val) || DOM.input.value.trim() === '') {
+                showMsg("> LỖI CÚ PHÁP: YÊU CẦU NHẬP SỐ HIỆU!", "var(--neon-orange)");
+                sfx.err.currentTime = 0; sfx.err.play().catch(()=>{});
+                flashRedScreen();
+                return;
+            }
+
+            // CHỈ CHẠY GAUGE SAU KHI NHẤN NÚT
+            updateGauge(val);
+
+            // Kiểm tra kết quả
+            if (val === CONFIG.correctAnswer) {
+                triggerWin();
+            } else {
+                currentLives--;
+                updateShields();
+                
+                if (currentLives > 0) {
+                    sfx.err.currentTime = 0; 
+                    sfx.err.play().catch(()=>{});
+                    shakeUI();
+                    flashRedScreen();
+                    showMsg(`> TỪ CHỐI! Lệnh sai. Tường lửa sụp đổ. Còn lại: ${currentLives} lượt.`, "var(--neon-orange)");
+                    DOM.input.value = '';
+                } else {
+                    // Nếu nhập sai lần cuối, gauge chạy xong 1 nhịp sẽ báo nổ
+                    setTimeout(() => triggerExplosion(), 500);
+                }
+            }
+        });
+
+        // Hỗ trợ Enter
+        DOM.input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') DOM.btn.click();
+        });
+
+        // Bật nhạc nền khi click lần đầu
+        document.body.addEventListener('click', () => {
+            if (!isAudioStarted) { sfx.bg.play().catch(()=>{}); isAudioStarted = true; }
+        }, { once: true });
+
+        // Khởi động
+        window.onload = initApp;
+
+    </script>
+</body>
+</html>
